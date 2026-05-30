@@ -305,9 +305,8 @@ class Particle {
   }
 
   get formed() {
+    // Use a looser threshold so cursor repulsion doesn't block phase transitions
     return (this.state === "forming" || this.state === "morphing") &&
-      Math.abs(this.tx - this.x) < 2.5 &&
-      Math.abs(this.ty - this.y) < 2.5 &&
       this.alpha > 0.9;
   }
 
@@ -349,7 +348,14 @@ function flashKey(el) {
 
 function jumpTo(idx) {
   phraseIdx = ((idx % PHRASES.length) + PHRASES.length) % PHRASES.length;
-  loadPhrase(PHRASES[phraseIdx], true);
+  // Retarget all existing particles directly — no phase gating
+  const targets = sampleText(PHRASES[phraseIdx]);
+  const reuse = Math.min(particles.length, targets.length);
+  for (let i = 0; i < reuse; i++) particles[i].retarget(targets[i].x, targets[i].y);
+  for (let i = reuse; i < targets.length; i++) particles.push(new Particle(targets[i].x, targets[i].y));
+  for (let i = targets.length; i < particles.length; i++) particles[i].scatter();
+  // Force phase to forming so the loop doesn't block on old state
+  phase = "forming";
   updateLabel();
 }
 
