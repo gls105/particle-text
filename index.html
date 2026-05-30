@@ -53,33 +53,47 @@
       z-index: 99;
     }
 
-    /* Dot nav */
-    #dot-nav {
+    /* Arrow hint */
+    #arrow-hint {
       position: fixed;
-      bottom: 32px;
+      bottom: 28px;
       left: 50%;
       transform: translateX(-50%);
       display: flex;
-      gap: 12px;
+      align-items: center;
+      gap: 16px;
       z-index: 200;
+      user-select: none;
+      pointer-events: none;
     }
 
-    .dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: rgba(255,255,255,0.25);
-      cursor: pointer;
-      transition: background 0.3s ease, transform 0.3s ease;
+    .arrow-key {
+      width: 28px;
+      height: 28px;
+      border: 1px solid rgba(255,255,255,0.22);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(255,255,255,0.35);
+      font-size: 13px;
+      font-family: system-ui, sans-serif;
+      transition: border-color 0.15s, color 0.15s;
     }
 
-    .dot.active {
-      background: #ffffff;
-      transform: scale(1.35);
+    .arrow-key.pressed {
+      border-color: rgba(255,255,255,0.8);
+      color: rgba(255,255,255,0.9);
     }
 
-    .dot:hover {
-      background: rgba(255,255,255,0.6);
+    #phrase-label {
+      font-family: system-ui, sans-serif;
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.22);
+      min-width: 90px;
+      text-align: center;
     }
   </style>
 </head>
@@ -90,7 +104,11 @@
 <div id="cursor"></div>
 <div id="cursor-ring"></div>
 
-<div id="dot-nav"></div>
+<div id="arrow-hint">
+  <div class="arrow-key" id="key-left">&#8592;</div>
+  <div id="phrase-label">Dream Big</div>
+  <div class="arrow-key" id="key-right">&#8594;</div>
+</div>
 
 <script>
 // ── Config ───────────────────────────────────────────────────────────────────
@@ -315,28 +333,30 @@ function loadPhrase(text, morph = false) {
 }
 
 // ── Scroll trigger (embed-ready) ──────────────────────────────────────────────
-// ── Dot Nav ──────────────────────────────────────────────────────────────────
-const dotNav = document.getElementById("dot-nav");
-const dots   = [];
+// ── Arrow Key Nav ────────────────────────────────────────────────────────────
+const phraseLabel = document.getElementById("phrase-label");
+const keyLeft     = document.getElementById("key-left");
+const keyRight    = document.getElementById("key-right");
 
-PHRASES.forEach((_, i) => {
-  const d = document.createElement("div");
-  d.className = "dot" + (i === 0 ? " active" : "");
-  d.addEventListener("click", () => jumpTo(i));
-  dotNav.appendChild(d);
-  dots.push(d);
-});
+function updateLabel() {
+  phraseLabel.textContent = PHRASES[phraseIdx];
+}
 
-function updateDots() {
-  dots.forEach((d, i) => d.classList.toggle("active", i === phraseIdx));
+function flashKey(el) {
+  el.classList.add("pressed");
+  setTimeout(() => el.classList.remove("pressed"), 180);
 }
 
 function jumpTo(idx) {
-  if (idx === phraseIdx) return;
-  phraseIdx = idx;
+  phraseIdx = ((idx % PHRASES.length) + PHRASES.length) % PHRASES.length;
   loadPhrase(PHRASES[phraseIdx], true);
-  updateDots();
+  updateLabel();
 }
+
+window.addEventListener("keydown", e => {
+  if (e.key === "ArrowRight") { flashKey(keyRight); jumpTo(phraseIdx + 1); }
+  if (e.key === "ArrowLeft")  { flashKey(keyLeft);  jumpTo(phraseIdx - 1); }
+});
 
 // ── Scroll trigger (embed-ready) ──────────────────────────────────────────────
 let started = false;
@@ -386,7 +406,7 @@ function tick(now) {
     // Fluid morph — no dissolve, warp directly into next phrase
     phraseIdx = (phraseIdx + 1) % PHRASES.length;
     loadPhrase(PHRASES[phraseIdx], true);
-    updateDots();
+    updateLabel();
   }
   else if (phase === "dissolving" && allGone) {
     particles = [];
