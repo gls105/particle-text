@@ -305,9 +305,8 @@ class Particle {
   }
 
   get formed() {
-    // Use a looser threshold so cursor repulsion doesn't block phase transitions
-    return (this.state === "forming" || this.state === "morphing") &&
-      this.alpha > 0.9;
+    if (this.state === "dissolving") return true; // dissolving extras don't block
+    return this.alpha > 0.9;
   }
 
   get gone() { return this.state === "dissolving" && this.alpha <= 0; }
